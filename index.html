@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Preventivi Pro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<!-- Google Identity Services -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<!-- Google API client -->
+<script src="https://apis.google.com/js/api.js" defer></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #F5F2ED; --surface: #FDFAF6; --surface2: #EDE9E2;
+    --ink: #1A1814; --ink2: #5C5750; --ink3: #9C9590;
+    --accent: #B85C2C; --accent2: #E8A87C; --border: #D8D3CB;
+    --green: #16a34a; --shadow: 0 2px 12px rgba(26,24,20,0.08);
+    --shadow-lg: 0 8px 40px rgba(26,24,20,0.14); --radius: 10px;
+    --mono: 'IBM Plex Mono', monospace; --sans: 'IBM Plex Sans', sans-serif; --serif: 'Playfair Display', serif;
+  }
+  body { font-family:var(--sans); background:var(--bg); color:var(--ink); height:100vh; display:flex; flex-direction:column; overflow:hidden; }
+
+  /* TOOLBAR */
+  .toolbar { background:var(--ink); color:#fff; display:flex; align-items:center; gap:8px; padding:0 16px; height:52px; flex-shrink:0; user-select:none; }
+  .toolbar-logo { font-family:var(--serif); font-size:17px; color:var(--accent2); margin-right:auto; white-space:nowrap; }
+  .toolbar-logo span { color:#fff; font-style:italic; }
+  .tb-btn { display:flex; align-items:center; gap:5px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.12); color:#fff; border-radius:6px; padding:6px 12px; font-size:12.5px; font-family:var(--sans); cursor:pointer; transition:all 0.15s; white-space:nowrap; }
+  .tb-btn:hover { background:rgba(255,255,255,0.16); }
+  .tb-btn.primary { background:var(--accent); border-color:var(--accent); }
+  .tb-btn.primary:hover { background:#a04e22; }
+  .tb-btn.green { background:#15803d; border-color:#15803d; }
+  .tb-btn.green:hover { background:#166534; }
+  .tb-btn:disabled { opacity:0.4; cursor:default; }
+  .tb-sep { width:1px; height:24px; background:rgba(255,255,255,0.15); margin:0 2px; }
+  .gdrive-status { display:flex; align-items:center; gap:6px; font-size:12px; color:rgba(255,255,255,0.6); white-space:nowrap; }
+  .gdrive-dot { width:7px; height:7px; border-radius:50%; background:#6b7280; flex-shrink:0; }
+  .gdrive-dot.connected { background:#4ade80; }
+  .gdrive-dot.syncing { background:#fbbf24; animation:pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* TABS */
+  .tabs { display:flex; background:var(--surface2); border-bottom:1px solid var(--border); padding:0 24px; flex-shrink:0; }
+  .tab { padding:12px 18px; font-size:13px; font-weight:500; color:var(--ink2); cursor:pointer; border-bottom:2px solid transparent; transition:all 0.15s; white-space:nowrap; }
+  .tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+  .tab:hover:not(.active) { color:var(--ink); }
+
+  /* LAYOUT */
+  .main { display:flex; flex:1; overflow:hidden; }
+  .panel { padding:24px; overflow-y:auto; height:100%; }
+  .editor-panel { flex:0 0 590px; border-right:1px solid var(--border); }
+  .preview-panel { flex:1; background:#E8E4DC; }
+  .archive-panel { flex:1; }
+
+  /* SECTIONS */
+  .section { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); margin-bottom:16px; overflow:hidden; box-shadow:var(--shadow); }
+  .section-header { padding:12px 16px; background:var(--surface2); border-bottom:1px solid var(--border); }
+  .section-title { font-size:11px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--ink2); }
+  .section-body { padding:16px; }
+
+  /* FIELDS */
+  .field-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .field-grid.three { grid-template-columns:1fr 1fr 1fr; }
+  .field-full { grid-column:1/-1; }
+  .field { display:flex; flex-direction:column; gap:4px; }
+  .field label { font-size:11px; font-weight:500; color:var(--ink3); text-transform:uppercase; letter-spacing:0.8px; }
+  .field input, .field textarea, .field select { font-family:var(--sans); font-size:13.5px; background:var(--bg); color:var(--ink); border:1px solid var(--border); border-radius:6px; padding:8px 10px; outline:none; transition:border 0.15s; width:100%; }
+  .field input:focus, .field textarea:focus, .field select:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(184,92,44,0.1); }
+  .field textarea { resize:vertical; min-height:72px; }
+
+  /* VOCI */
+  .voci-table { width:100%; border-collapse:collapse; }
+  .voci-table th { font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.8px; color:var(--ink3); padding:0 5px 8px; text-align:left; }
+  .voci-table td { padding:3px 2px; vertical-align:middle; }
+  .voci-table tr+tr td { border-top:1px solid var(--border); padding-top:5px; }
+  .cell-input { font-family:var(--sans); font-size:12.5px; background:transparent; border:1px solid transparent; border-radius:5px; padding:5px 6px; width:100%; color:var(--ink); outline:none; transition:all 0.12s; }
+  .cell-input:hover { background:var(--surface2); }
+  .cell-input:focus { background:var(--bg); border-color:var(--accent); }
+  .cell-input.mono { font-family:var(--mono); font-size:12px; }
+  .cell-input.right { text-align:right; }
+  .cell-select { font-family:var(--mono); font-size:11.5px; background:transparent; border:1px solid transparent; border-radius:5px; padding:5px 3px; width:100%; color:var(--ink2); outline:none; cursor:pointer; transition:all 0.12s; }
+  .cell-select:hover { background:var(--surface2); border-color:var(--border); }
+  .cell-select:focus { background:var(--bg); border-color:var(--accent); }
+  .totale-cell { font-family:var(--mono); font-size:12.5px; color:var(--ink2); text-align:right; padding-right:5px; white-space:nowrap; }
+  .del-btn { width:24px; height:24px; border-radius:50%; border:none; background:transparent; color:var(--ink3); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:14px; transition:all 0.12s; }
+  .del-btn:hover { background:#fee2e2; color:#b91c1c; }
+  .add-row-btn { display:flex; align-items:center; gap:6px; margin-top:12px; padding:8px 10px; background:transparent; border:1px dashed var(--border); border-radius:6px; color:var(--ink3); cursor:pointer; font-size:13px; font-family:var(--sans); width:100%; justify-content:center; transition:all 0.15s; }
+  .add-row-btn:hover { border-color:var(--accent); color:var(--accent); background:rgba(184,92,44,0.04); }
+
+  /* TOTALI */
+  .totali-box { margin-top:16px; }
+  .totali-row { display:flex; justify-content:space-between; align-items:center; padding:6px 0; font-size:13.5px; }
+  .totali-row+.totali-row { border-top:1px solid var(--border); }
+  .totali-row .label { color:var(--ink2); }
+  .totali-row .value { font-family:var(--mono); font-size:13px; }
+  .totali-row.grand { padding-top:12px; border-top:2px solid var(--ink); margin-top:4px; }
+  .totali-row.grand .label { font-weight:600; font-size:15px; }
+  .totali-row.grand .value { font-size:18px; font-weight:500; color:var(--accent); }
+
+  /* PREVIEW */
+  .preview-paper { background:white; width:794px; min-height:1123px; margin:24px auto; border-radius:4px; box-shadow:var(--shadow-lg); padding:60px 64px; position:relative; font-family:var(--sans); }
+  .prev-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:48px; }
+  .prev-logo { font-family:var(--serif); font-size:26px; color:var(--accent); line-height:1; }
+  .prev-meta { text-align:right; }
+  .prev-num { font-family:var(--mono); font-size:13px; color:var(--ink2); }
+  .prev-title { font-family:var(--serif); font-size:32px; color:var(--ink); margin:0 0 4px; }
+  .prev-date { font-size:12px; color:var(--ink3); margin-top:6px; }
+  .prev-parties { display:grid; grid-template-columns:1fr 1fr; gap:32px; margin-bottom:40px; }
+  .prev-party-label { font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:1px; color:var(--ink3); margin-bottom:8px; }
+  .prev-party-name { font-size:15px; font-weight:600; color:var(--ink); margin-bottom:4px; }
+  .prev-party-info { font-size:12px; color:var(--ink2); line-height:1.6; }
+  .prev-divider { border:none; border-top:2px solid var(--ink); margin-bottom:24px; }
+  .prev-table { width:100%; border-collapse:collapse; margin-bottom:32px; }
+  .prev-table th { font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.8px; color:var(--ink3); padding:8px 0; border-bottom:1px solid var(--border); text-align:left; }
+  .prev-table th.right { text-align:right; } .prev-table th.center { text-align:center; }
+  .prev-table td { padding:11px 0; border-bottom:1px solid var(--surface2); font-size:13px; vertical-align:top; }
+  .prev-table td.right { text-align:right; font-family:var(--mono); font-size:12.5px; }
+  .prev-table td.center { text-align:center; font-family:var(--mono); font-size:12px; color:var(--ink2); }
+  .prev-table td.desc { color:var(--ink); font-weight:500; }
+  .prev-totali { display:flex; justify-content:flex-end; }
+  .prev-totali-inner { width:240px; }
+  .prev-tot-row { display:flex; justify-content:space-between; padding:5px 0; font-size:12.5px; }
+  .prev-tot-row .v { font-family:var(--mono); font-size:12px; }
+  .prev-tot-row.grand { border-top:2px solid var(--ink); margin-top:6px; padding-top:10px; }
+  .prev-tot-row.grand .l { font-size:15px; font-weight:600; }
+  .prev-tot-row.grand .v { font-size:16px; color:var(--accent); font-weight:500; }
+  .prev-note { margin-top:48px; border-top:1px solid var(--border); padding-top:20px; }
+  .prev-note-label { font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:1px; color:var(--ink3); margin-bottom:6px; }
+  .prev-note-text { font-size:12px; color:var(--ink2); line-height:1.6; }
+  .prev-validita { margin-top:16px; display:inline-flex; align-items:center; gap:8px; background:#FEF3E8; border:1px solid var(--accent2); border-radius:6px; padding:6px 12px; }
+  .prev-validita span { font-size:11px; color:var(--accent); font-weight:500; }
+  .prev-footer { position:absolute; bottom:40px; left:64px; right:64px; text-align:center; font-size:10.5px; color:var(--ink3); border-top:1px solid var(--border); padding-top:16px; }
+
+  /* ARCHIVIO */
+  .arch-topbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:10px; }
+  .arch-title { font-family:var(--serif); font-size:22px; }
+  .arch-count { font-family:var(--mono); font-size:12px; color:var(--ink3); margin-top:4px; }
+  .arch-empty { text-align:center; padding:80px 20px; color:var(--ink3); }
+  .arch-empty .icon { font-size:52px; margin-bottom:16px; }
+  .arch-empty p { font-size:14px; line-height:1.7; }
+  .arch-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:14px; }
+  .arch-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:18px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:8px; transition:all 0.15s; }
+  .arch-card:hover { border-color:var(--accent2); box-shadow:0 4px 20px rgba(184,92,44,0.1); }
+  .arch-card-num { font-family:var(--mono); font-size:11px; color:var(--accent); font-weight:500; display:flex; align-items:center; gap:6px; }
+  .cloud-badge { font-size:10px; background:#dbeafe; color:#1d4ed8; border-radius:4px; padding:1px 5px; }
+  .arch-card-cliente { font-size:15px; font-weight:600; color:var(--ink); }
+  .arch-card-data { font-size:11.5px; color:var(--ink3); }
+  .arch-card-tot { font-family:var(--mono); font-size:20px; color:var(--ink); font-weight:500; }
+  .arch-card-actions { display:flex; gap:8px; margin-top:6px; flex-wrap:wrap; }
+  .arch-btn { font-family:var(--sans); font-size:12px; padding:5px 12px; border-radius:5px; border:1px solid var(--border); background:var(--bg); color:var(--ink2); cursor:pointer; transition:all 0.12s; }
+  .arch-btn:hover { border-color:var(--accent); color:var(--accent); }
+  .arch-btn.danger:hover { border-color:#ef4444; color:#ef4444; background:#fef2f2; }
+  .arch-card-note { font-size:11px; color:var(--ink3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+  /* GDRIVE BANNER */
+  .gdrive-banner { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px 20px; margin-bottom:20px; display:flex; align-items:center; gap:14px; }
+  .gdrive-banner .icon { font-size:28px; flex-shrink:0; }
+  .gdrive-banner p { font-size:13px; color:var(--ink2); line-height:1.5; }
+  .gdrive-banner strong { color:var(--ink); }
+
+  /* TOAST */
+  .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(60px); background:var(--ink); color:#fff; padding:10px 22px; border-radius:8px; font-size:13px; opacity:0; transition:all 0.25s; z-index:9999; pointer-events:none; white-space:nowrap; }
+  .toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
+
+  /* PRINT */
+  @media print {
+    body { height:auto; overflow:visible; }
+    .toolbar,.tabs,.editor-panel,.archive-panel { display:none !important; }
+    .main { display:block; }
+    .preview-panel { background:white; height:auto; overflow:visible; }
+    .preview-paper { box-shadow:none; margin:0; width:100%; border-radius:0; }
+  }
+  ::-webkit-scrollbar { width:6px; }
+  ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="toolbar-logo">Preventivi <span>Pro</span></div>
+  <button class="tb-btn" onclick="nuovoPreventivo()">＋ Nuovo</button>
+  <div class="tb-sep"></div>
+  <button class="tb-btn" onclick="archivia()">🗄 Archivia</button>
+  <button class="tb-btn" id="btn-gdrive-save" onclick="salvaSuDrive()" disabled>☁️ Salva su Drive</button>
+  <div class="tb-sep"></div>
+  <button class="tb-btn" onclick="esportaJSON()">⬇ JSON</button>
+  <button class="tb-btn" onclick="caricaJSON()">📂 Importa</button>
+  <div class="tb-sep"></div>
+  <!-- Stato Google Drive -->
+  <div class="gdrive-status">
+    <div class="gdrive-dot" id="gdrive-dot"></div>
+    <span id="gdrive-label">Non connesso</span>
+  </div>
+  <button class="tb-btn green" id="btn-login" onclick="gdriveLogin()">🔗 Connetti Drive</button>
+  <button class="tb-btn" id="btn-logout" onclick="gdriveLogout()" style="display:none">Disconnetti</button>
+  <div class="tb-sep"></div>
+  <button class="tb-btn primary" onclick="stampa()">🖨 Stampa / PDF</button>
+</div>
+
+<div class="tabs">
+  <div class="tab active" id="tab-editor" onclick="switchTab('editor')">✏️ Editor</div>
+  <div class="tab" id="tab-preview" onclick="switchTab('preview')">👁 Anteprima</div>
+  <div class="tab" id="tab-archive" onclick="switchTab('archive')">🗄 Archivio <span id="arch-badge" style="font-size:10px;font-family:var(--mono);color:var(--accent);margin-left:2px;"></span></div>
+</div>
+
+<div class="main">
+
+  <!-- EDITOR -->
+  <div class="editor-panel panel" id="panel-editor">
+    <div class="section">
+      <div class="section-header"><span class="section-title">📄 Intestazione preventivo</span></div>
+      <div class="section-body">
+        <div class="field-grid three">
+          <div class="field"><label>Numero</label><input type="text" id="numero" value="PRE-2026-001"></div>
+          <div class="field"><label>Data</label><input type="date" id="data" value="2026-03-07"></div>
+          <div class="field"><label>Valido fino al</label><input type="date" id="validita" value="2026-04-07"></div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header"><span class="section-title">🏢 Il tuo studio / azienda</span></div>
+      <div class="section-body">
+        <div class="field-grid">
+          <div class="field field-full"><label>Nome / Ragione sociale</label><input type="text" id="em-nome" value="Studio Creativo S.r.l."></div>
+          <div class="field field-full"><label>Indirizzo</label><input type="text" id="em-indirizzo" value="Via Brera 5, 20121 Milano"></div>
+          <div class="field"><label>Email</label><input type="email" id="em-email" value="hello@studiocreativo.it"></div>
+          <div class="field"><label>Telefono</label><input type="text" id="em-tel" value="+39 02 1234567"></div>
+          <div class="field"><label>P.IVA</label><input type="text" id="em-piva" value="IT 01234567890"></div>
+          <div class="field"><label>Sito web</label><input type="text" id="em-web" value="www.studiocreativo.it"></div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header"><span class="section-title">👤 Cliente</span></div>
+      <div class="section-body">
+        <div class="field-grid">
+          <div class="field field-full"><label>Nome / Ragione sociale</label><input type="text" id="cl-nome" value="Acme S.r.l."></div>
+          <div class="field field-full"><label>Indirizzo</label><input type="text" id="cl-indirizzo" value="Via Roma 12, 20100 Milano"></div>
+          <div class="field"><label>Email</label><input type="email" id="cl-email" value="info@acme.it"></div>
+          <div class="field"><label>P.IVA / C.F.</label><input type="text" id="cl-piva" value="IT 09876543210"></div>
+          <div class="field"><label>Referente</label><input type="text" id="cl-ref" value="Mario Rossi"></div>
+          <div class="field"><label>Telefono</label><input type="text" id="cl-tel" value="+39 02 9876543"></div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header"><span class="section-title">📋 Voci di preventivo</span></div>
+      <div class="section-body">
+        <table class="voci-table">
+          <thead><tr>
+            <th style="width:35%">Descrizione</th>
+            <th style="width:10%">U.M.</th>
+            <th style="width:10%">Qtà</th>
+            <th style="width:17%">Prezzo unit.</th>
+            <th style="width:16%">Totale</th>
+            <th style="width:28px"></th>
+          </tr></thead>
+          <tbody id="voci-body"></tbody>
+        </table>
+        <button class="add-row-btn" onclick="aggiungiVoce()">＋ Aggiungi voce</button>
+        <div class="totali-box">
+          <div class="totali-row"><span class="label">Subtotale</span><span class="value" id="t-sub">€ 0,00</span></div>
+          <div class="totali-row" id="row-sconto" style="display:none"><span class="label">Sconto (<span id="t-sconto-pct">0</span>%)</span><span class="value" id="t-sconto">−</span></div>
+          <div class="totali-row"><span class="label">Imponibile</span><span class="value" id="t-imp">€ 0,00</span></div>
+          <div class="totali-row"><span class="label">IVA (<span id="t-iva-pct">22</span>%)</span><span class="value" id="t-iva">€ 0,00</span></div>
+          <div class="totali-row grand"><span class="label">Totale</span><span class="value" id="t-tot">€ 0,00</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header"><span class="section-title">⚙️ Impostazioni fiscali</span></div>
+      <div class="section-body">
+        <div class="field-grid">
+          <div class="field"><label>IVA %</label>
+            <select id="iva-sel" onchange="sync()">
+              <option value="22" selected>22% (standard)</option>
+              <option value="10">10% (ridotta)</option>
+              <option value="4">4% (super ridotta)</option>
+              <option value="0">0% / Esente</option>
+            </select>
+          </div>
+          <div class="field"><label>Sconto globale %</label><input type="number" id="sconto-inp" min="0" max="100" value="0" oninput="sync()" placeholder="0"></div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header"><span class="section-title">📝 Note & condizioni</span></div>
+      <div class="section-body">
+        <div class="field"><label>Note per il cliente</label>
+          <textarea id="note" rows="3">Il preventivo è valido per 30 giorni dalla data di emissione. I prezzi sono da intendersi IVA esclusa. La conferma del preventivo avviene tramite firma del presente documento.</textarea>
+        </div>
+        <div class="field" style="margin-top:12px"><label>Condizioni di pagamento</label>
+          <input type="text" id="pagamento" value="50% alla conferma, 50% alla consegna">
+        </div>
+      </div>
+    </div>
+  </div><!-- /editor -->
+
+  <!-- PREVIEW -->
+  <div class="preview-panel panel" id="panel-preview" style="display:none">
+    <div class="preview-paper" id="paper">
+      <div class="prev-header">
+        <div><div class="prev-logo" id="p-logo"></div><div style="font-size:12px;color:#9C9590;margin-top:6px;" id="p-em-contact"></div></div>
+        <div class="prev-meta"><div class="prev-num" id="p-num"></div><div class="prev-title">Preventivo</div><div class="prev-date" id="p-date"></div></div>
+      </div>
+      <hr class="prev-divider">
+      <div class="prev-parties">
+        <div><div class="prev-party-label">Da</div><div class="prev-party-name" id="p-em-nome"></div><div class="prev-party-info" id="p-em-info"></div></div>
+        <div><div class="prev-party-label">A / Cliente</div><div class="prev-party-name" id="p-cl-nome"></div><div class="prev-party-info" id="p-cl-info"></div></div>
+      </div>
+      <table class="prev-table">
+        <thead><tr>
+          <th style="width:40%">Descrizione</th>
+          <th class="center" style="width:9%">U.M.</th>
+          <th class="right" style="width:9%">Qtà</th>
+          <th class="right" style="width:21%">Prezzo unit.</th>
+          <th class="right" style="width:21%">Totale</th>
+        </tr></thead>
+        <tbody id="p-voci"></tbody>
+      </table>
+      <div class="prev-totali"><div class="prev-totali-inner">
+        <div class="prev-tot-row"><span class="l" style="color:#9C9590">Subtotale</span><span class="v" id="p-sub"></span></div>
+        <div class="prev-tot-row" id="p-row-sconto" style="display:none"><span class="l" style="color:#9C9590">Sconto (<span id="p-sc-pct"></span>%)</span><span class="v" id="p-sc-val"></span></div>
+        <div class="prev-tot-row"><span class="l" style="color:#9C9590">Imponibile</span><span class="v" id="p-imp"></span></div>
+        <div class="prev-tot-row"><span class="l" style="color:#9C9590">IVA (<span id="p-iva-pct"></span>%)</span><span class="v" id="p-iva"></span></div>
+        <div class="prev-tot-row grand"><span class="l">Totale dovuto</span><span class="v" id="p-tot"></span></div>
+      </div></div>
+      <div class="prev-note">
+        <div class="prev-note-label">Note & condizioni</div>
+        <div class="prev-note-text" id="p-note"></div>
+        <div class="prev-note-text" style="margin-top:8px;" id="p-pagamento"></div>
+        <div class="prev-validita"><span>⏳ Validità: fino al <span id="p-valid"></span></span></div>
+      </div>
+      <div class="prev-footer" id="p-footer"></div>
+    </div>
+  </div>
+
+  <!-- ARCHIVIO -->
+  <div class="archive-panel panel" id="panel-archive" style="display:none">
+    <div class="arch-topbar">
+      <div><div class="arch-title">Archivio preventivi</div><div class="arch-count" id="arch-count"></div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="tb-btn green" id="btn-drive-sync" onclick="sincronizzaDrive()" disabled style="font-size:12px;">☁️ Sincronizza Drive</button>
+        <button class="tb-btn" style="background:var(--ink);color:#fff;border-color:var(--ink);font-size:12px;" onclick="svuotaArchivio()">🗑 Svuota locale</button>
+        <button class="tb-btn" style="background:var(--ink);color:#fff;border-color:var(--ink);font-size:12px;" onclick="switchTab('editor')">← Editor</button>
+      </div>
+    </div>
+    <div id="arch-content"></div>
+  </div>
+
+</div><!-- /main -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────────────
+const CLIENT_ID   = '1071187321746-pr55bvbgni4rtb7lqjklmqgmr0sd27gm.apps.googleusercontent.com';
+const SCOPES      = 'https://www.googleapis.com/auth/drive.appdata';
+const DRIVE_FILE  = 'preventivi_pro_archivio.json';
+const LS_KEY      = 'preventivi_pro_archivio';
+const UM_OPTIONS  = ['cad','h','gg','m','m²','m³','kg','t','km','l','pz','set','lotto','—'];
+
+// ── STATE ─────────────────────────────────────────────────────────────────
+let voci = [
+  {id:1, desc:'Consulenza strategica e analisi del progetto', um:'h',     qta:10, prezzo:120},
+  {id:2, desc:'Design UI/UX — ricerca, wireframe, prototipo', um:'lotto', qta:1,  prezzo:2400},
+  {id:3, desc:'Sviluppo front-end',                           um:'h',     qta:20, prezzo:90},
+];
+let nextId = 4;
+let tokenClient = null;
+let accessToken  = null;
+let driveFileId  = null;
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+window.onload = () => {
+  renderVoci(); ricalcola(); aggiornaPreview(); aggiornaArchBadge();
+  document.querySelectorAll('#panel-editor input,#panel-editor textarea,#panel-editor select').forEach(el => {
+    el.addEventListener('input',  sync);
+    el.addEventListener('change', sync);
+  });
+  // Inizializza Google Identity Services
+  window.gapiLoaded = false;
+  window.gsiLoaded  = false;
+};
+
+// Google API loaded callback
+function gapiLoaded_cb() {
+  gapi.load('client', async () => {
+    await gapi.client.init({ discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] });
+    window.gapiLoaded = true;
+    maybeEnableGdrive();
+  });
+}
+
+// Attach to script onload
+document.querySelector('script[src*="api.js"]')?.addEventListener('load', gapiLoaded_cb);
+document.querySelector('script[src*="gsi/client"]')?.addEventListener('load', () => {
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: handleTokenResponse,
+  });
+  window.gsiLoaded = true;
+  maybeEnableGdrive();
+});
+
+function maybeEnableGdrive() {
+  // Entrambi i client caricati
+  if (!window.gapiLoaded || !window.gsiLoaded) return;
+  // Controlla se abbiamo già un token salvato in sessione
+  const saved = sessionStorage.getItem('gdrive_token');
+  if (saved) {
+    accessToken = saved;
+    gapi.client.setToken({ access_token: accessToken });
+    setDriveConnected(true);
+  }
+}
+
+// ── GOOGLE DRIVE AUTH ─────────────────────────────────────────────────────
+function gdriveLogin() {
+  if (!tokenClient) { toast('⚠️ Libreria Google non ancora caricata, riprova'); return; }
+  tokenClient.requestAccessToken({ prompt: 'consent' });
+}
+
+function handleTokenResponse(resp) {
+  if (resp.error) { toast('❌ Errore autenticazione: ' + resp.error); return; }
+  accessToken = resp.access_token;
+  sessionStorage.setItem('gdrive_token', accessToken);
+  gapi.client.setToken({ access_token: accessToken });
+  setDriveConnected(true);
+  toast('✅ Connesso a Google Drive!');
+  // Carica subito archivio dal cloud
+  caricaDaCloud(true);
+}
+
+function gdriveLogout() {
+  if (accessToken) google.accounts.oauth2.revoke(accessToken);
+  accessToken = null;
+  driveFileId = null;
+  sessionStorage.removeItem('gdrive_token');
+  setDriveConnected(false);
+  toast('Disconnesso da Google Drive');
+}
+
+function setDriveConnected(on) {
+  document.getElementById('gdrive-dot').className   = 'gdrive-dot' + (on ? ' connected' : '');
+  document.getElementById('gdrive-label').textContent = on ? 'Drive connesso' : 'Non connesso';
+  document.getElementById('btn-login').style.display  = on ? 'none' : 'flex';
+  document.getElementById('btn-logout').style.display = on ? 'flex' : 'none';
+  document.getElementById('btn-gdrive-save').disabled = !on;
+  document.getElementById('btn-drive-sync').disabled  = !on;
+}
+
+function setSyncing(on) {
+  document.getElementById('gdrive-dot').className = 'gdrive-dot' + (on ? ' syncing' : ' connected');
+  document.getElementById('gdrive-label').textContent = on ? 'Sincronizzazione…' : 'Drive connesso';
+}
+
+// ── DRIVE: TROVA O CREA FILE ──────────────────────────────────────────────
+async function trovaCreaFile() {
+  // Cerca file esistente in appDataFolder
+  const list = await gapi.client.drive.files.list({
+    spaces: 'appDataFolder',
+    q: `name='${DRIVE_FILE}'`,
+    fields: 'files(id,name)',
+  });
+  const files = list.result.files;
+  if (files && files.length > 0) {
+    driveFileId = files[0].id;
+    return driveFileId;
+  }
+  // Crea nuovo file
+  const created = await gapi.client.drive.files.create({
+    resource: { name: DRIVE_FILE, parents: ['appDataFolder'] },
+    fields: 'id',
+  });
+  driveFileId = created.result.id;
+  return driveFileId;
+}
+
+// ── DRIVE: SALVA ──────────────────────────────────────────────────────────
+async function salvaSuDrive() {
+  if (!accessToken) { toast('Prima connettiti a Google Drive'); return; }
+  try {
+    setSyncing(true);
+    const fileId = await trovaCreaFile();
+    const archivio = getArch();
+    const body = JSON.stringify(archivio, null, 2);
+    // Multipart upload
+    const boundary = '-------preventivi_boundary';
+    const multipart = `--${boundary}\r\nContent-Type: application/json\r\n\r\n{}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${body}\r\n--${boundary}--`;
+    await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`, {
+      method: 'PATCH',
+      headers: { 'Authorization': 'Bearer ' + accessToken, 'Content-Type': `multipart/related; boundary="${boundary}"` },
+      body: multipart,
+    });
+    setSyncing(false);
+    toast('☁️ Archivio salvato su Google Drive');
+  } catch(e) {
+    setSyncing(false);
+    toast('❌ Errore salvataggio Drive: ' + e.message);
+  }
+}
+
+// ── DRIVE: CARICA ─────────────────────────────────────────────────────────
+async function caricaDaCloud(silenzioso) {
+  if (!accessToken) return;
+  try {
+    setSyncing(true);
+    const fileId = await trovaCreaFile();
+    const resp = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+      headers: { 'Authorization': 'Bearer ' + accessToken }
+    });
+    if (!resp.ok) throw new Error('File non leggibile');
+    const testo = await resp.text();
+    if (!testo.trim()) { setSyncing(false); return; }
+    const remoto = JSON.parse(testo);
+    if (!Array.isArray(remoto)) { setSyncing(false); return; }
+
+    // Merge: unisci locale e remoto (remoto ha precedenza per numero)
+    const locale = getArch();
+    const map = {};
+    locale.forEach(p  => { map[p.numero] = p; });
+    remoto.forEach(p => { map[p.numero] = p; }); // remoto sovrascrive
+    const merged = Object.values(map).sort((a,b)=>new Date(b._archiviato||0)-new Date(a._archiviato||0));
+    setArch(merged);
+    aggiornaArchBadge();
+    setSyncing(false);
+    if (!silenzioso) { toast('☁️ Archivio sincronizzato con Google Drive'); renderArchivio(); }
+  } catch(e) {
+    setSyncing(false);
+    if (!silenzioso) toast('❌ Errore caricamento Drive: ' + e.message);
+  }
+}
+
+async function sincronizzaDrive() {
+  await caricaDaCloud(false);
+  await salvaSuDrive();
+  renderArchivio();
+}
+
+// ── TABS ──────────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  ['editor','preview','archive'].forEach(t => {
+    document.getElementById('panel-'+t).style.display = 'none';
+    document.getElementById('tab-'+t).className = 'tab';
+  });
+  document.getElementById('panel-'+tab).style.display = 'block';
+  document.getElementById('tab-'+tab).className = 'tab active';
+  if (tab==='preview') aggiornaPreview();
+  if (tab==='archive') renderArchivio();
+}
+
+// ── VOCI ──────────────────────────────────────────────────────────────────
+function umOpts(sel) { return UM_OPTIONS.map(u=>`<option value="${u}"${u===sel?' selected':''}>${u}</option>`).join(''); }
+
+function renderVoci() {
+  const tb = document.getElementById('voci-body'); tb.innerHTML='';
+  voci.forEach(v => {
+    const tr = document.createElement('tr');
+    tr.innerHTML=`
+      <td><input class="cell-input" value="${escH(v.desc)}" oninput="aggiornaVoce(${v.id},'desc',this.value)"></td>
+      <td><select class="cell-select" onchange="aggiornaVoce(${v.id},'um',this.value)">${umOpts(v.um||'cad')}</select></td>
+      <td><input class="cell-input mono right" type="number" min="0" step="0.01" value="${v.qta}" oninput="aggiornaVoce(${v.id},'qta',this.value)"></td>
+      <td><input class="cell-input mono right" type="number" min="0" step="0.01" value="${v.prezzo}" oninput="aggiornaVoce(${v.id},'prezzo',this.value)"></td>
+      <td class="totale-cell" id="tc-${v.id}">${fmt(v.qta*v.prezzo)}</td>
+      <td><button class="del-btn" onclick="eliminaVoce(${v.id})">×</button></td>`;
+    tb.appendChild(tr);
+  });
+  ricalcola(); aggiornaPreview();
+}
+
+function aggiornaVoce(id,field,val) {
+  const v=voci.find(x=>x.id===id); if(!v) return;
+  if(field==='desc'||field==='um') v[field]=val;
+  else v[field]=parseFloat(val)||0;
+  const c=document.getElementById('tc-'+id); if(c) c.textContent=fmt(v.qta*v.prezzo);
+  ricalcola(); aggiornaPreview();
+}
+function aggiungiVoce() {
+  voci.push({id:nextId++,desc:'Nuova voce',um:'cad',qta:1,prezzo:0}); renderVoci();
+  setTimeout(()=>{ const r=document.querySelectorAll('#voci-body tr:last-child input'); if(r[0])r[0].focus();},50);
+}
+function eliminaVoce(id) { voci=voci.filter(v=>v.id!==id); renderVoci(); }
+
+// ── CALCOLI ───────────────────────────────────────────────────────────────
+function calcTotali() {
+  const ivaVal=parseFloat(document.getElementById('iva-sel').value)||0;
+  const scontoPct=parseFloat(document.getElementById('sconto-inp').value)||0;
+  const sub=voci.reduce((s,v)=>s+v.qta*v.prezzo,0);
+  const scontoAmt=sub*scontoPct/100;
+  const imp=sub-scontoAmt;
+  const ivaAmt=imp*ivaVal/100;
+  return {sub,scontoAmt,imp,ivaAmt,tot:imp+ivaAmt,ivaVal,scontoPct};
+}
+function ricalcola() {
+  const {sub,scontoAmt,imp,ivaAmt,tot,ivaVal,scontoPct}=calcTotali();
+  setText('t-sub',fmt(sub)); setText('t-sconto','− '+fmt(scontoAmt));
+  setText('t-sconto-pct',scontoPct); setText('t-imp',fmt(imp));
+  setText('t-iva',fmt(ivaAmt)); setText('t-iva-pct',ivaVal); setText('t-tot',fmt(tot));
+  document.getElementById('row-sconto').style.display=scontoPct>0?'flex':'none';
+}
+function sync() { ricalcola(); aggiornaPreview(); }
+
+// ── PREVIEW ───────────────────────────────────────────────────────────────
+function aggiornaPreview() {
+  const g=id=>document.getElementById(id)?.value||'';
+  const {sub,scontoAmt,imp,ivaAmt,tot,ivaVal,scontoPct}=calcTotali();
+  setText('p-logo',g('em-nome')); setText('p-em-nome',g('em-nome'));
+  setText('p-em-contact',[g('em-email'),g('em-tel'),g('em-web')].filter(Boolean).join(' · '));
+  setHTML('p-em-info',escH([g('em-indirizzo'),'P.IVA '+g('em-piva')].filter(x=>x&&x!=='P.IVA ').join('\n')).replace(/\n/g,'<br>'));
+  setText('p-cl-nome',g('cl-nome'));
+  setHTML('p-cl-info',escH([g('cl-ref'),g('cl-indirizzo'),g('cl-email'),g('cl-tel'),'P.IVA '+g('cl-piva')].filter(x=>x&&x!=='P.IVA ').join('\n')).replace(/\n/g,'<br>'));
+  setText('p-num',g('numero'));
+  setText('p-date',g('data')?'Data: '+fmtData(g('data')):'');
+  const pb=document.getElementById('p-voci'); pb.innerHTML='';
+  voci.forEach(v=>{const tr=document.createElement('tr');tr.innerHTML=`<td class="desc">${escH(v.desc)}</td><td class="center">${escH(v.um||'—')}</td><td class="right">${v.qta}</td><td class="right">${fmt(v.prezzo)}</td><td class="right">${fmt(v.qta*v.prezzo)}</td>`;pb.appendChild(tr);});
+  setText('p-sub',fmt(sub)); setText('p-sc-pct',scontoPct); setText('p-sc-val','− '+fmt(scontoAmt));
+  setText('p-imp',fmt(imp)); setText('p-iva-pct',ivaVal); setText('p-iva',fmt(ivaAmt)); setText('p-tot',fmt(tot));
+  document.getElementById('p-row-sconto').style.display=scontoPct>0?'flex':'none';
+  setText('p-note',g('note'));
+  document.getElementById('p-pagamento').textContent=g('pagamento')?'💳 Pagamento: '+g('pagamento'):'';
+  setText('p-valid',g('validita')?fmtData(g('validita')):'—');
+  setText('p-footer',`${g('em-nome')} · ${g('em-indirizzo')} · P.IVA ${g('em-piva')} · ${g('em-email')}`);
+}
+
+// ── ARCHIVIO LOCALE ───────────────────────────────────────────────────────
+function getArch() { try{return JSON.parse(localStorage.getItem(LS_KEY)||'[]');}catch{return [];} }
+function setArch(a) { localStorage.setItem(LS_KEY,JSON.stringify(a)); }
+
+function archivia() {
+  const s=raccogliStato();
+  if(!s.numero.trim()){toast('⚠️ Inserisci un numero preventivo');return;}
+  const arr=getArch();
+  const idx=arr.findIndex(x=>x.numero===s.numero);
+  s._archiviato=new Date().toISOString(); s._totale=calcTotali().tot;
+  if(idx>=0){if(!confirm(`Sovrascrivere "${s.numero}" già in archivio?`))return; arr[idx]=s;}
+  else{arr.unshift(s);}
+  setArch(arr); aggiornaArchBadge();
+  toast(`✓ ${s.numero} archiviato`);
+  // Auto-salva su Drive se connesso
+  if(accessToken) setTimeout(salvaSuDrive, 500);
+}
+
+function aggiornaArchBadge() {
+  const n=getArch().length;
+  const el=document.getElementById('arch-badge');
+  if(el) el.textContent=n>0?`(${n})`:'';
+}
+
+function renderArchivio() {
+  const arr=getArch();
+  document.getElementById('arch-count').textContent=arr.length===0?'Nessun preventivo salvato':`${arr.length} preventiv${arr.length===1?'o':'i'} in archivio`;
+  const cnt=document.getElementById('arch-content');
+  if(arr.length===0){
+    cnt.innerHTML=`<div class="arch-empty"><div class="icon">🗄</div><p>L'archivio è vuoto.<br>Premi <strong>Archivia</strong> per salvare il preventivo corrente.<br><br>${accessToken?'I preventivi vengono salvati automaticamente su Google Drive ☁️':'Connetti Google Drive per sincronizzare tra dispositivi.'}</p></div>`;
+    return;
+  }
+  cnt.innerHTML=`<div class="arch-grid">${arr.map((p,i)=>{
+    const dp=p.data?fmtData(p.data):'—';
+    const da=p._archiviato?new Date(p._archiviato).toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'}):'';
+    const cloudBadge=p._cloud?'<span class="cloud-badge">☁️ Drive</span>':'';
+    return `<div class="arch-card">
+      <div class="arch-card-num">${escH(p.numero||'—')} ${cloudBadge}</div>
+      <div class="arch-card-cliente">${escH(p.cliente?.nome||'—')}</div>
+      <div class="arch-card-data">📅 ${dp}${da?' · '+da:''}</div>
+      <div class="arch-card-tot">${fmt(p._totale||0)}</div>
+      ${p.note?`<div class="arch-card-note">${escH(p.note)}</div>`:''}
+      <div class="arch-card-actions">
+        <button class="arch-btn" onclick="caricaDaArch(${i})">📂 Apri</button>
+        <button class="arch-btn" onclick="esportaSingolo(${i})">⬇ JSON</button>
+        <button class="arch-btn danger" onclick="eliminaDaArch(${i})">🗑</button>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+function caricaDaArch(i) {
+  const arr=getArch(); if(!arr[i]) return;
+  if(!confirm(`Aprire "${arr[i].numero}"?\nIl preventivo corrente andrà perso se non archiviato.`)) return;
+  applicaStato(arr[i]); switchTab('editor');
+  toast(`Preventivo ${arr[i].numero} caricato`);
+}
+function eliminaDaArch(i) {
+  const arr=getArch(); if(!arr[i]) return;
+  if(!confirm(`Eliminare "${arr[i].numero}"?`)) return;
+  arr.splice(i,1); setArch(arr); aggiornaArchBadge(); renderArchivio();
+  if(accessToken) setTimeout(salvaSuDrive,500);
+  toast('Eliminato');
+}
+function esportaSingolo(i) { const arr=getArch(); if(arr[i]) scaricaJSON(arr[i],arr[i].numero||'preventivo'); }
+function svuotaArchivio() {
+  const arr=getArch(); if(!arr.length){toast('Archivio già vuoto');return;}
+  if(!confirm(`Eliminare tutti i ${arr.length} preventivi locali?`)) return;
+  setArch([]); aggiornaArchBadge(); renderArchivio(); toast('Archivio locale svuotato');
+}
+
+// ── TOOLBAR ───────────────────────────────────────────────────────────────
+function stampa(){switchTab('preview');setTimeout(()=>window.print(),250);}
+function nuovoPreventivo(){
+  if(!confirm('Creare nuovo preventivo?\nIl corrente andrà perso se non archiviato.')) return;
+  voci=[];nextId=1;
+  document.getElementById('numero').value='PRE-'+new Date().getFullYear()+'-'+String(Math.floor(Math.random()*900+100));
+  document.getElementById('data').value=new Date().toISOString().split('T')[0];
+  const d30=new Date();d30.setDate(d30.getDate()+30);
+  document.getElementById('validita').value=d30.toISOString().split('T')[0];
+  ['cl-nome','cl-indirizzo','cl-email','cl-piva','cl-ref','cl-tel'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  renderVoci();
+}
+function esportaJSON(){scaricaJSON(raccogliStato(),document.getElementById('numero').value||'preventivo');}
+function caricaJSON(){
+  const i=document.createElement('input');i.type='file';i.accept='.json';
+  i.onchange=e=>{const r=new FileReader();r.onload=ev=>{try{applicaStato(JSON.parse(ev.target.result));toast('Importato');}catch{alert('File non valido.');}};r.readAsText(e.target.files[0]);};
+  i.click();
+}
+function scaricaJSON(obj,nome){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(obj,null,2)],{type:'application/json'}));
+  a.download=nome.replace(/[^a-zA-Z0-9_\-]/g,'_')+'.json';a.click();
+}
+
+// ── STATO ─────────────────────────────────────────────────────────────────
+function raccogliStato(){
+  const g=id=>document.getElementById(id)?.value||'';
+  return{numero:g('numero'),data:g('data'),validita:g('validita'),
+    emittente:{nome:g('em-nome'),indirizzo:g('em-indirizzo'),email:g('em-email'),tel:g('em-tel'),piva:g('em-piva'),web:g('em-web')},
+    cliente:{nome:g('cl-nome'),indirizzo:g('cl-indirizzo'),email:g('cl-email'),tel:g('cl-tel'),piva:g('cl-piva'),ref:g('cl-ref')},
+    voci,iva:g('iva-sel'),sconto:g('sconto-inp'),note:g('note'),pagamento:g('pagamento')};
+}
+function applicaStato(s){
+  const set=(id,val)=>{const el=document.getElementById(id);if(el)el.value=val||'';};
+  set('numero',s.numero);set('data',s.data);set('validita',s.validita);
+  if(s.emittente){set('em-nome',s.emittente.nome);set('em-indirizzo',s.emittente.indirizzo);set('em-email',s.emittente.email);set('em-tel',s.emittente.tel);set('em-piva',s.emittente.piva);set('em-web',s.emittente.web);}
+  if(s.cliente){set('cl-nome',s.cliente.nome);set('cl-indirizzo',s.cliente.indirizzo);set('cl-email',s.cliente.email);set('cl-tel',s.cliente.tel);set('cl-piva',s.cliente.piva);set('cl-ref',s.cliente.ref);}
+  if(s.voci){voci=s.voci;nextId=Math.max(...voci.map(v=>v.id),0)+1;}
+  set('iva-sel',s.iva);set('sconto-inp',s.sconto);set('note',s.note);set('pagamento',s.pagamento);
+  renderVoci();ricalcola();aggiornaPreview();
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────────
+function fmt(n){return(n||0).toLocaleString('it-IT',{style:'currency',currency:'EUR'});}
+function fmtData(d){try{return new Date(d).toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'});}catch{return d;}}
+function setText(id,val){const el=document.getElementById(id);if(el)el.textContent=val;}
+function setHTML(id,val){const el=document.getElementById(id);if(el)el.innerHTML=val;}
+function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+let _tt;
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove('show'),2800);}
+
+// Init GAPI quando il tag script è caricato
+window.addEventListener('load', () => {
+  if(typeof gapi!=='undefined') gapiLoaded_cb();
+  if(typeof google!=='undefined'&&google.accounts) {
+    tokenClient=google.accounts.oauth2.initTokenClient({client_id:CLIENT_ID,scope:SCOPES,callback:handleTokenResponse});
+    window.gsiLoaded=true; maybeEnableGdrive();
+  }
+});
+</script>
+</body>
+</html>
