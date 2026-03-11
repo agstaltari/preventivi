@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BuildMgr">
+<meta name="theme-color" content="#0f1117">
+<title>BuildMgr Mobile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:      #0f1117;
+    --bg2:     #161821;
+    --bg3:     #1e2130;
+    --bg4:     #252840;
+    --border:  #2a2d40;
+    --accent:  #f5a623;
+    --accent2: #ff6b35;
+    --blue:    #4a90e2;
+    --green:   #27ae60;
+    --red:     #e74c3c;
+    --purple:  #9b59b6;
+    --text:    #f0f2ff;
+    --text2:   #9aa0bc;
+    --text3:   #5a6080;
+    --radius:  14px;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bot: env(safe-area-inset-bottom, 0px);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    height: 100%; width: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    font-size: 15px;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  /* ── TOPBAR ─────────────────────────────────── */
+  .topbar {
+    position: fixed; top: 0; left: 0; right: 0;
+    height: calc(56px + var(--safe-top));
+    padding-top: var(--safe-top);
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center;
+    padding-left: 16px; padding-right: 16px;
+    gap: 12px; z-index: 100;
+  }
+  .topbar-logo {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800; font-size: 20px;
+    color: var(--accent); letter-spacing: .5px;
+    flex: 1;
+  }
+  .topbar-logo span { color: var(--text2); font-weight: 600; font-size: 13px; margin-left: 6px; }
+  .topbar-btn {
+    background: var(--bg3); border: 1px solid var(--border);
+    color: var(--text2); border-radius: 10px;
+    padding: 7px 12px; font-size: 13px; font-family: 'Barlow',sans-serif;
+    cursor: pointer; font-weight: 600;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .topbar-btn.accent { background: var(--accent); color: #000; border-color: var(--accent); }
+  .topbar-sync { font-size: 11px; color: var(--text3); }
+
+  /* ── CONTENT ────────────────────────────────── */
+  .content {
+    position: fixed; top: calc(56px + var(--safe-top)); left: 0; right: 0;
+    bottom: calc(64px + var(--safe-bot));
+    overflow-y: auto; -webkit-overflow-scrolling: touch;
+    padding: 16px 16px 8px;
+  }
+
+  /* ── BOTTOM NAV ─────────────────────────────── */
+  .bottomnav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    height: calc(64px + var(--safe-bot));
+    padding-bottom: var(--safe-bot);
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center;
+    z-index: 100;
+  }
+  .bnav-item {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 4px; cursor: pointer; padding: 10px 0;
+    color: var(--text3); font-size: 10px; font-weight: 600;
+    letter-spacing: .3px; text-transform: uppercase;
+    transition: color .15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .bnav-item .icon { font-size: 22px; line-height: 1; }
+  .bnav-item.active { color: var(--accent); }
+  .bnav-item.active .icon { filter: drop-shadow(0 0 6px var(--accent)); }
+
+  /* ── VIEWS ──────────────────────────────────── */
+  .view { display: none; animation: fadeUp .2s ease; }
+  .view.active { display: block; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── CARDS ──────────────────────────────────── */
+  .card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px;
+    margin-bottom: 12px;
+  }
+  .card-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700; font-size: 13px; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--text3);
+    margin-bottom: 12px;
+  }
+
+  /* ── CANTIERE SELECTOR ─────────────────────── */
+  .cant-selector {
+    background: linear-gradient(135deg, var(--bg3) 0%, var(--bg4) 100%);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px 16px; margin-bottom: 16px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .cant-selector-icon { font-size: 28px; }
+  .cant-selector-info { flex: 1; min-width: 0; }
+  .cant-selector-nome {
+    font-weight: 700; font-size: 15px; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .cant-selector-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .cant-selector-btn {
+    background: var(--accent); color: #000; border: none;
+    border-radius: 8px; padding: 8px 12px;
+    font-size: 12px; font-weight: 700; font-family: 'Barlow',sans-serif;
+    cursor: pointer; white-space: nowrap;
+  }
+
+  /* ── DATE ROW ───────────────────────────────── */
+  .date-row {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 16px;
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 14px;
+  }
+  .date-row label { font-size: 12px; color: var(--text3); font-weight: 600; }
+  .date-row input[type=date] {
+    background: none; border: none; color: var(--accent);
+    font-family: 'Barlow',sans-serif; font-size: 15px; font-weight: 700;
+    outline: none; flex: 1; -webkit-appearance: none;
+  }
+
+  /* ── OPERAIO ROW ────────────────────────────── */
+  .op-row {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px;
+    margin-bottom: 10px; transition: border-color .15s;
+  }
+  .op-row.presente { border-color: var(--green); background: rgba(39,174,96,.07); }
+  .op-row-head {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 0;
+  }
+  .op-check {
+    width: 24px; height: 24px; border-radius: 6px;
+    border: 2px solid var(--border); background: var(--bg4);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; flex-shrink: 0; transition: all .15s;
+    font-size: 14px;
+  }
+  .op-check.on { background: var(--green); border-color: var(--green); }
+  .op-info { flex: 1; min-width: 0; }
+  .op-nome { font-weight: 700; font-size: 14px; }
+  .op-ruolo { font-size: 12px; color: var(--text2); }
+  .op-expand {
+    color: var(--text3); font-size: 18px; cursor: pointer;
+    padding: 4px; transition: transform .2s;
+  }
+  .op-expand.open { transform: rotate(180deg); }
+  .op-details {
+    display: none; margin-top: 12px; padding-top: 12px;
+    border-top: 1px solid var(--border);
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  }
+  .op-details.hidden { display: none !important; }
+  .op-field label {
+    font-size: 11px; color: var(--text3); font-weight: 600;
+    text-transform: uppercase; letter-spacing: .5px; display: block;
+    margin-bottom: 5px;
+  }
+  .op-field select, .op-field input {
+    width: 100%; background: var(--bg4); border: 1px solid var(--border);
+    color: var(--text); border-radius: 8px; padding: 9px 10px;
+    font-family: 'Barlow',sans-serif; font-size: 13px; outline: none;
+    -webkit-appearance: none; appearance: none;
+  }
+
+  /* ── SPESA FORM ─────────────────────────────── */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .form-grid.full { grid-template-columns: 1fr; }
+  .fg { display: flex; flex-direction: column; gap: 5px; }
+  .fg label {
+    font-size: 11px; color: var(--text3); font-weight: 600;
+    text-transform: uppercase; letter-spacing: .5px;
+  }
+  .fg input, .fg select, .fg textarea {
+    background: var(--bg3); border: 1px solid var(--border);
+    color: var(--text); border-radius: 10px; padding: 12px 14px;
+    font-family: 'Barlow',sans-serif; font-size: 14px; outline: none;
+    -webkit-appearance: none; appearance: none; width: 100%;
+    transition: border-color .15s;
+  }
+  .fg input:focus, .fg select:focus, .fg textarea:focus {
+    border-color: var(--accent);
+  }
+  .fg textarea { resize: none; min-height: 72px; }
+  .fg.span2 { grid-column: 1 / -1; }
+
+  /* ── BUTTONS ────────────────────────────────── */
+  .btn {
+    border: none; border-radius: 12px; padding: 14px 20px;
+    font-family: 'Barlow Condensed',sans-serif;
+    font-size: 16px; font-weight: 700; letter-spacing: .5px;
+    cursor: pointer; display: flex; align-items: center;
+    justify-content: center; gap: 8px; transition: all .15s;
+    text-transform: uppercase;
+  }
+  .btn:active { transform: scale(.97); }
+  .btn-primary { background: var(--accent); color: #000; }
+  .btn-success { background: var(--green); color: #fff; }
+  .btn-ghost {
+    background: var(--bg3); color: var(--text2);
+    border: 1px solid var(--border);
+  }
+  .btn-full { width: 100%; }
+  .btn-danger { background: var(--red); color: #fff; }
+
+  /* ── BADGE ──────────────────────────────────── */
+  .badge {
+    display: inline-block; border-radius: 6px; padding: 3px 8px;
+    font-size: 11px; font-weight: 700; letter-spacing: .3px;
+  }
+  .b-green { background: rgba(39,174,96,.18); color: #2ecc71; }
+  .b-orange { background: rgba(243,156,18,.18); color: #f39c12; }
+  .b-red { background: rgba(231,76,60,.18); color: #e74c3c; }
+  .b-blue { background: rgba(74,144,226,.18); color: #4a90e2; }
+  .b-gray { background: rgba(255,255,255,.08); color: var(--text2); }
+
+  /* ── KPI STRIP ──────────────────────────────── */
+  .kpi-strip {
+    display: grid; grid-template-columns: repeat(3,1fr); gap: 10px;
+    margin-bottom: 16px;
+  }
+  .kpi-box {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 12px 10px; text-align: center;
+  }
+  .kpi-val {
+    font-family: 'Barlow Condensed',sans-serif;
+    font-size: 22px; font-weight: 800; color: var(--accent);
+  }
+  .kpi-lbl { font-size: 10px; color: var(--text3); font-weight: 600;
+    text-transform: uppercase; margin-top: 3px; letter-spacing: .3px; }
+
+  /* ── SPESE LIST ─────────────────────────────── */
+  .spesa-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 0; border-bottom: 1px solid var(--border);
+  }
+  .spesa-item:last-child { border-bottom: none; }
+  .spesa-icon {
+    width: 38px; height: 38px; border-radius: 10px;
+    background: var(--bg3); display: flex; align-items: center;
+    justify-content: center; font-size: 18px; flex-shrink: 0;
+  }
+  .spesa-info { flex: 1; min-width: 0; }
+  .spesa-desc { font-weight: 600; font-size: 13px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .spesa-sub { font-size: 11px; color: var(--text2); margin-top: 2px; }
+  .spesa-imp { font-weight: 800; font-size: 15px; color: var(--text); }
+
+  /* ── MODAL ──────────────────────────────────── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.7);
+    z-index: 200; display: flex; align-items: flex-end;
+    opacity: 0; pointer-events: none; transition: opacity .2s;
+  }
+  .modal-overlay.open {
+    opacity: 1; pointer-events: all;
+  }
+  .modal-sheet {
+    width: 100%; background: var(--bg2);
+    border-radius: 20px 20px 0 0;
+    border-top: 1px solid var(--border);
+    padding: 20px 20px calc(20px + var(--safe-bot));
+    transform: translateY(100%); transition: transform .25s cubic-bezier(.4,0,.2,1);
+    max-height: 90vh; overflow-y: auto;
+  }
+  .modal-overlay.open .modal-sheet { transform: translateY(0); }
+  .modal-handle {
+    width: 36px; height: 4px; background: var(--border);
+    border-radius: 2px; margin: 0 auto 16px;
+  }
+  .modal-title {
+    font-family: 'Barlow Condensed',sans-serif;
+    font-size: 20px; font-weight: 800; margin-bottom: 18px;
+    color: var(--text);
+  }
+
+  /* ── TOAST ──────────────────────────────────── */
+  .toast {
+    position: fixed; bottom: calc(80px + var(--safe-bot));
+    left: 16px; right: 16px; z-index: 300;
+    background: var(--bg4); border: 1px solid var(--border);
+    border-radius: 12px; padding: 13px 16px;
+    font-size: 13px; font-weight: 600; color: var(--text);
+    display: flex; align-items: center; gap: 10px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.5);
+    transform: translateY(20px); opacity: 0;
+    transition: all .2s; pointer-events: none;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  /* ── SETUP / LOGIN ──────────────────────────── */
+  .setup-screen {
+    position: fixed; inset: 0; background: var(--bg);
+    z-index: 500; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 32px 24px; gap: 0;
+  }
+  .setup-logo {
+    font-family: 'Barlow Condensed',sans-serif;
+    font-size: 48px; font-weight: 800; color: var(--accent);
+    letter-spacing: -1px; margin-bottom: 4px;
+  }
+  .setup-sub { color: var(--text2); font-size: 14px; margin-bottom: 40px; }
+  .setup-step {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 16px; padding: 20px; width: 100%;
+    max-width: 380px; margin-bottom: 14px;
+  }
+  .setup-step-num {
+    font-family: 'Barlow Condensed',sans-serif;
+    font-size: 11px; font-weight: 700; color: var(--accent);
+    text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;
+  }
+  .setup-step-title { font-weight: 700; font-size: 15px; margin-bottom: 6px; }
+  .setup-step-desc { font-size: 13px; color: var(--text2); line-height: 1.5; }
+  .setup-input {
+    width: 100%; background: var(--bg3); border: 1px solid var(--border);
+    color: var(--text); border-radius: 10px; padding: 12px 14px;
+    font-family: 'Barlow',sans-serif; font-size: 14px; outline: none;
+    margin-top: 12px; -webkit-appearance: none;
+  }
+  .setup-input:focus { border-color: var(--accent); }
+
+  /* ── SYNC STATUS ────────────────────────────── */
+  .sync-bar {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 14px;
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 16px; font-size: 13px;
+  }
+  .sync-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .sync-dot.ok  { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .sync-dot.err { background: var(--red); }
+  .sync-dot.pending { background: var(--accent); animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  /* ── SECTION TITLE ──────────────────────────── */
+  .sec-title {
+    font-family: 'Barlow Condensed',sans-serif;
+    font-size: 22px; font-weight: 800; color: var(--text);
+    margin-bottom: 4px;
+  }
+  .sec-sub { font-size: 13px; color: var(--text2); margin-bottom: 16px; }
+
+  /* ── EMPTY STATE ────────────────────────────── */
+  .empty {
+    text-align: center; padding: 40px 20px;
+    color: var(--text3); font-size: 14px;
+  }
+  .empty-icon { font-size: 40px; margin-bottom: 12px; }
+
+  /* ── CANT LIST ──────────────────────────────── */
+  .cant-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px; background: var(--bg3);
+    border: 1px solid var(--border); border-radius: 12px;
+    margin-bottom: 8px; cursor: pointer;
+    transition: border-color .15s;
+  }
+  .cant-item.selected { border-color: var(--accent); background: rgba(245,166,35,.07); }
+  .cant-item:active { transform: scale(.99); }
+  .cant-item-icon { font-size: 24px; }
+  .cant-item-info { flex: 1; min-width: 0; }
+  .cant-item-nome { font-weight: 700; font-size: 14px; }
+  .cant-item-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+  /* ── DIVIDER ────────────────────────────────── */
+  .divider {
+    height: 1px; background: var(--border);
+    margin: 16px 0;
+  }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 0; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     SETUP SCREEN (Google Drive OAuth)
+════════════════════════════════════════ -->
+<div class="setup-screen" id="setup-screen">
+  <div class="setup-logo">BUILD<span style="color:var(--text2)">MGR</span></div>
+  <div class="setup-sub">Versione Mobile · Cantiere</div>
+
+  <div class="setup-step">
+    <div class="setup-step-num">① Connetti Google Drive</div>
+    <div class="setup-step-title">Inserisci il tuo Client ID</div>
+    <div class="setup-step-desc">
+      Ottienilo da <strong style="color:var(--accent)">console.cloud.google.com</strong> →
+      API & Services → Credentials → OAuth 2.0 Client ID (tipo: Web application).
+      Aggiungi questo URL come "Authorized JavaScript origin".
+    </div>
+    <input class="setup-input" id="setup-client-id" placeholder="xxxxx.apps.googleusercontent.com"
+           value="">
+  </div>
+
+  <div class="setup-step">
+    <div class="setup-step-num">② File dati</div>
+    <div class="setup-step-title">Nome del file su Drive</div>
+    <div class="setup-step-desc">
+      Deve essere lo stesso file <strong>buildmgr_data.json</strong> usato dal gestionale desktop.
+    </div>
+    <input class="setup-input" id="setup-filename" placeholder="buildmgr_data.json" value="buildmgr_data.json">
+  </div>
+
+  <div style="width:100%;max-width:380px;">
+    <button class="btn btn-primary btn-full" onclick="setupConnect()" style="font-size:17px;padding:16px;">
+      🔐 Connetti e Accedi
+    </button>
+    <div style="text-align:center;margin-top:14px;">
+      <span style="font-size:12px;color:var(--text3);cursor:pointer;" onclick="setupDemo()">
+        ▶ Prova modalità demo (dati di esempio)
+      </span>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     TOPBAR
+════════════════════════════════════════ -->
+<div class="topbar" id="topbar" style="display:none;">
+  <div class="topbar-logo">
+    BUILD<span>MGR</span>
+  </div>
+  <div id="sync-status" class="topbar-sync">—</div>
+  <button class="topbar-btn accent" onclick="gdSync()" id="btn-sync">
+    ↑↓ Sync
+  </button>
+</div>
+
+<!-- ══════════════════════════════════════
+     CONTENT
+════════════════════════════════════════ -->
+<div class="content" id="main-content" style="display:none;">
+
+  <!-- VIEW: HOME ─────────────────────── -->
+  <div class="view active" id="view-home">
+    <div class="sec-title">Buongiorno 👷</div>
+    <div class="sec-sub" id="home-data"></div>
+
+    <!-- Cantiere attivo -->
+    <div class="cant-selector" id="home-cant-box" onclick="openModalCantiere()">
+      <div class="cant-selector-icon">🏗️</div>
+      <div class="cant-selector-info">
+        <div class="cant-selector-nome" id="home-cant-nome">Nessun cantiere selezionato</div>
+        <div class="cant-selector-sub" id="home-cant-sub">Tocca per selezionare</div>
+      </div>
+      <button class="cant-selector-btn">Cambia</button>
+    </div>
+
+    <!-- Sync bar -->
+    <div class="sync-bar" id="home-sync-bar">
+      <div class="sync-dot pending" id="home-sync-dot"></div>
+      <span id="home-sync-txt">Non sincronizzato</span>
+      <span style="margin-left:auto;font-size:11px;color:var(--text3);" id="home-sync-time"></span>
+    </div>
+
+    <!-- KPI -->
+    <div class="kpi-strip" id="home-kpis">
+      <div class="kpi-box">
+        <div class="kpi-val" id="kpi-operai">0</div>
+        <div class="kpi-lbl">Operai oggi</div>
+      </div>
+      <div class="kpi-box">
+        <div class="kpi-val" id="kpi-spese">€0</div>
+        <div class="kpi-lbl">Spese oggi</div>
+      </div>
+      <div class="kpi-box">
+        <div class="kpi-val" id="kpi-avanz">0%</div>
+        <div class="kpi-lbl">Avanzamento</div>
+      </div>
+    </div>
+
+    <!-- Quick actions -->
+    <div class="card-title" style="margin-bottom:10px;">Azioni rapide</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+      <button class="btn btn-ghost" onclick="goView('presenze')" style="padding:18px;flex-direction:column;gap:6px;height:80px;border-radius:14px;">
+        <span style="font-size:26px;">✅</span>
+        <span style="font-size:13px;">Presenze</span>
+      </button>
+      <button class="btn btn-ghost" onclick="goView('spese')" style="padding:18px;flex-direction:column;gap:6px;height:80px;border-radius:14px;">
+        <span style="font-size:26px;">💰</span>
+        <span style="font-size:13px;">Nuova Spesa</span>
+      </button>
+    </div>
+
+    <!-- Ultime spese -->
+    <div class="card" id="home-spese-card">
+      <div class="card-title">Ultime spese inserite</div>
+      <div id="home-spese-list"><div class="empty"><div class="empty-icon">📋</div>Nessuna spesa</div></div>
+    </div>
+  </div>
+
+  <!-- VIEW: PRESENZE ─────────────────── -->
+  <div class="view" id="view-presenze">
+    <div class="sec-title">✅ Presenze Operai</div>
+    <div class="sec-sub">Registra le presenze di oggi</div>
+
+    <!-- Cantiere -->
+    <div class="cant-selector" style="margin-bottom:12px;" onclick="openModalCantiere()">
+      <div class="cant-selector-icon">🏗️</div>
+      <div class="cant-selector-info">
+        <div class="cant-selector-nome" id="pres-cant-nome">Nessun cantiere</div>
+        <div class="cant-selector-sub" id="pres-cant-sub">Tocca per selezionare</div>
+      </div>
+      <button class="cant-selector-btn">Cambia</button>
+    </div>
+
+    <!-- Data -->
+    <div class="date-row">
+      <label>DATA</label>
+      <input type="date" id="pres-data" oninput="renderPresenze()">
+    </div>
+
+    <!-- Lista operai -->
+    <div id="pres-operai-list"></div>
+
+    <!-- Bottone salva -->
+    <div style="margin-top:8px;">
+      <button class="btn btn-success btn-full" onclick="salvaPresenze()">
+        💾 Salva Presenze
+      </button>
+    </div>
+  </div>
+
+  <!-- VIEW: SPESE ────────────────────── -->
+  <div class="view" id="view-spese">
+    <div class="sec-title">💰 Spese & Costi</div>
+    <div class="sec-sub">Aggiungi una nuova voce</div>
+
+    <div class="card">
+      <div class="form-grid">
+        <div class="fg span2">
+          <label>Cantiere</label>
+          <select id="sp-cant">
+            <option value="">— Seleziona —</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Data *</label>
+          <input type="date" id="sp-data">
+        </div>
+        <div class="fg">
+          <label>Categoria</label>
+          <select id="sp-cat">
+            <option>Materiali</option>
+            <option>Manodopera</option>
+            <option>Noleggi</option>
+            <option>Carburante</option>
+            <option>Assicurazioni</option>
+            <option>Altro</option>
+          </select>
+        </div>
+        <div class="fg span2">
+          <label>Descrizione *</label>
+          <input id="sp-desc" placeholder="es. Cemento Portland 25kg x 40 sacchi">
+        </div>
+        <div class="fg">
+          <label>Importo € *</label>
+          <input type="number" id="sp-imp" placeholder="0.00" inputmode="decimal">
+        </div>
+        <div class="fg">
+          <label>Pagamento</label>
+          <select id="sp-pag">
+            <option>Bonifico</option>
+            <option>Contanti</option>
+            <option>Carta</option>
+            <option>Assegno</option>
+          </select>
+        </div>
+        <div class="fg span2">
+          <label>Note</label>
+          <textarea id="sp-note" placeholder="Eventuali note..."></textarea>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <button class="btn btn-primary btn-full" onclick="salvaSpesa()">
+        ➕ Aggiungi Spesa
+      </button>
+    </div>
+
+    <!-- Spese odierne -->
+    <div class="card">
+      <div class="card-title">Spese di oggi</div>
+      <div id="spese-oggi-list"><div class="empty" style="padding:20px 0;"><div class="empty-icon">📋</div>Nessuna spesa oggi</div></div>
+    </div>
+  </div>
+
+</div><!-- /content -->
+
+<!-- ══════════════════════════════════════
+     BOTTOM NAV
+════════════════════════════════════════ -->
+<div class="bottomnav" id="bottom-nav" style="display:none;">
+  <div class="bnav-item active" id="nav-home" onclick="goView('home')">
+    <div class="icon">🏠</div>Home
+  </div>
+  <div class="bnav-item" id="nav-presenze" onclick="goView('presenze')">
+    <div class="icon">✅</div>Presenze
+  </div>
+  <div class="bnav-item" id="nav-spese" onclick="goView('spese')">
+    <div class="icon">💰</div>Spese
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     MODAL: SELEZIONE CANTIERE
+════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-cantiere" onclick="closeModalIfBg(event,'modal-cantiere')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🏗️ Seleziona Cantiere</div>
+    <div id="modal-cant-list"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     TOAST
+════════════════════════════════════════ -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// STATO
+// ═══════════════════════════════════════════════════════════
+var DB = { cantieri:[], personale:[], spese:[], scadenze:[], preventivi:[], incassi:[], mezzi:[], fornitori:[], documenti:[] };
+var APP = {
+  cantiere: null,       // cantiere attivo selezionato
+  lastSync: null,
+  isDemo: false,
+  gdToken: null,
+  gdFileId: null,
+  clientId: '',
+  fileName: 'buildmgr_data.json',
+};
+
+// ═══════════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════════
+function today() {
+  return new Date().toISOString().slice(0,10);
+}
+function fmt(n) {
+  return Number(n||0).toLocaleString('it-IT',{minimumFractionDigits:0,maximumFractionDigits:2});
+}
+function toast(msg, color) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.borderColor = color || 'var(--border)';
+  el.classList.add('show');
+  setTimeout(function(){ el.classList.remove('show'); }, 2800);
+}
+
+// ═══════════════════════════════════════════════════════════
+// SETUP & GOOGLE DRIVE
+// ═══════════════════════════════════════════════════════════
+function setupConnect() {
+  var clientId = document.getElementById('setup-client-id').value.trim();
+  var fileName  = document.getElementById('setup-filename').value.trim() || 'buildmgr_data.json';
+  if (!clientId) { toast('⚠️ Inserisci il Client ID', 'var(--red)'); return; }
+  APP.clientId = clientId;
+  APP.fileName = fileName;
+  localStorage.setItem('bm_clientId', clientId);
+  localStorage.setItem('bm_fileName', fileName);
+  gdOAuth();
+}
+
+function setupDemo() {
+  APP.isDemo = true;
+  loadDemoData();
+  showApp();
+  toast('✅ Modalità demo attiva', 'var(--green)');
+}
+
+function gdOAuth() {
+  // Google Identity Services (token flow)
+  if (!window.google || !window.google.accounts) {
+    // Carica script GSI
+    var s = document.createElement('script');
+    s.src = 'https://accounts.google.com/gsi/client';
+    s.onload = function() { gdOAuthInner(); };
+    s.onerror = function() { toast('❌ Impossibile caricare Google Sign-In. Controlla la connessione.','var(--red)'); };
+    document.head.appendChild(s);
+  } else {
+    gdOAuthInner();
+  }
+}
+
+function gdOAuthInner() {
+  google.accounts.oauth2.initTokenClient({
+    client_id: APP.clientId,
+    scope: 'https://www.googleapis.com/auth/drive.file',
+    callback: function(resp) {
+      if (resp.error) { toast('❌ Errore autenticazione: '+resp.error,'var(--red)'); return; }
+      APP.gdToken = resp.access_token;
+      localStorage.setItem('bm_clientId', APP.clientId);
+      localStorage.setItem('bm_fileName', APP.fileName);
+      showApp();
+      gdLoadFile();
+    }
+  }).requestAccessToken();
+}
+
+async function gdLoadFile() {
+  setSyncStatus('pending','Caricamento...');
+  try {
+    // Cerca il file per nome
+    var search = await fetch(
+      'https://www.googleapis.com/drive/v3/files?q=name%3D%22'+encodeURIComponent(APP.fileName)+'%22+and+trashed%3Dfalse&fields=files(id,name,modifiedTime)',
+      { headers: { Authorization: 'Bearer '+APP.gdToken } }
+    );
+    var sdata = await search.json();
+    if (sdata.files && sdata.files.length > 0) {
+      APP.gdFileId = sdata.files[0].id;
+      // Scarica contenuto
+      var dl = await fetch('https://www.googleapis.com/drive/v3/files/'+APP.gdFileId+'?alt=media',
+        { headers: { Authorization: 'Bearer '+APP.gdToken } }
+      );
+      var json = await dl.json();
+      if (json.DB) {
+        Object.keys(json.DB).forEach(function(k){ if(DB[k]!==undefined) DB[k]=json.DB[k]; });
+        APP.lastSync = new Date();
+        setSyncStatus('ok','Sincronizzato');
+        updateSyncTime();
+        toast('✅ Dati caricati da Drive','var(--green)');
+      }
+    } else {
+      setSyncStatus('ok','Nessun file trovato — pronto per la prima sincronizzazione');
+      toast('⚠️ File non trovato su Drive. Salva prima dal desktop.','var(--orange)');
+    }
+    renderAll();
+  } catch(e) {
+    setSyncStatus('err','Errore caricamento');
+    toast('❌ Errore: '+e.message,'var(--red)');
+    console.error(e);
+  }
+}
+
+async function gdSync() {
+  if (APP.isDemo) { toast('Demo: sincronizzazione non disponibile'); return; }
+  if (!APP.gdToken) { toast('⚠️ Non autenticato','var(--red)'); return; }
+
+  setSyncStatus('pending','Sincronizzazione...');
+  document.getElementById('btn-sync').textContent = '⏳';
+
+  try {
+    var payload = JSON.stringify({ version:'1.0mobile', savedAt: new Date().toISOString(), DB: DB }, null, 2);
+    var blob = new Blob([payload], {type:'application/json'});
+
+    if (APP.gdFileId) {
+      // Aggiorna file esistente
+      await fetch('https://www.googleapis.com/upload/drive/v3/files/'+APP.gdFileId+'?uploadType=media',{
+        method: 'PATCH',
+        headers: { Authorization:'Bearer '+APP.gdToken, 'Content-Type':'application/json' },
+        body: payload
+      });
+    } else {
+      // Crea nuovo file
+      var meta = new Blob([JSON.stringify({name:APP.fileName, mimeType:'application/json'})],{type:'application/json'});
+      var form = new FormData();
+      form.append('metadata', meta);
+      form.append('file', blob);
+      var res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',{
+        method:'POST', headers:{ Authorization:'Bearer '+APP.gdToken }, body:form
+      });
+      var r = await res.json();
+      APP.gdFileId = r.id;
+    }
+    APP.lastSync = new Date();
+    setSyncStatus('ok','Sincronizzato');
+    updateSyncTime();
+    document.getElementById('btn-sync').textContent = '↑↓ Sync';
+    toast('✅ Dati salvati su Drive','var(--green)');
+  } catch(e) {
+    setSyncStatus('err','Errore sync');
+    document.getElementById('btn-sync').textContent = '↑↓ Sync';
+    toast('❌ Errore: '+e.message,'var(--red)');
+    console.error(e);
+  }
+}
+
+function setSyncStatus(state, msg) {
+  var dot = document.getElementById('home-sync-dot');
+  var txt = document.getElementById('home-sync-txt');
+  var top = document.getElementById('sync-status');
+  dot.className = 'sync-dot '+state;
+  txt.textContent = msg;
+  top.textContent = state==='ok'?'✓ Drive':state==='pending'?'…':'✗ Drive';
+}
+
+function updateSyncTime() {
+  var el = document.getElementById('home-sync-time');
+  if (APP.lastSync) el.textContent = APP.lastSync.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+}
+
+// ═══════════════════════════════════════════════════════════
+// DEMO DATA
+// ═══════════════════════════════════════════════════════════
+function loadDemoData() {
+  DB.cantieri = [
+    {id:'C001',nome:'Residenziale Via Verdi 12',cli:'Fam. Bianchi',stato:'In Corso',avanz:48,budget:420000,giorn:[]},
+    {id:'C002',nome:'Ristrutturazione Uffici Corso Roma',cli:'Edilstudio SRL',stato:'In Corso',avanz:62,budget:85000,giorn:[]},
+    {id:'C003',nome:'Capannone Industriale Z.I.',cli:'LogisticPro SpA',stato:'Avviato',avanz:23,budget:780000,giorn:[]},
+    {id:'C004',nome:'Manutenzione Scuola Elementare',cli:'Comune di Monza',stato:'In Corso',avanz:58,budget:38000,giorn:[]},
+  ];
+  DB.personale = [
+    {nome:'Giuseppe Ferrari',ruolo:'Capo Cantiere',cant:'C001',costo:380,stato:'Presente'},
+    {nome:'Antonio Esposito',ruolo:'Muratore',cant:'C001',costo:220,stato:'Presente'},
+    {nome:'Carlo Rinaldi',ruolo:'Elettricista',cant:'C002',costo:240,stato:'Presente'},
+    {nome:'Francesco Mancini',ruolo:'Idraulico',cant:'C001',costo:230,stato:'Presente'},
+    {nome:'Roberto Longo',ruolo:'Operaio',cant:'C004',costo:200,stato:'Presente'},
+    {nome:'Marco Russo',ruolo:'Capo Cantiere',cant:'C002',costo:380,stato:'Presente'},
+  ];
+  DB.spese = [
+    {data:today(),cat:'Materiali',desc:'Cemento Portland 40 sacchi',cant:'C001',imp:320,pag:'Contanti',note:''},
+    {data:today(),cat:'Carburante',desc:'Rifornimento escavatore',cant:'C001',imp:85,pag:'Carta',note:''},
+  ];
+}
+
+// ═══════════════════════════════════════════════════════════
+// APP INIT
+// ═══════════════════════════════════════════════════════════
+function showApp() {
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('topbar').style.display = 'flex';
+  document.getElementById('main-content').style.display = 'block';
+  document.getElementById('bottom-nav').style.display = 'flex';
+
+  // Imposta data di oggi
+  document.getElementById('pres-data').value = today();
+  document.getElementById('sp-data').value = today();
+  document.getElementById('home-data').textContent = new Date().toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});
+
+  // Cantiere di default: il primo
+  if (DB.cantieri.length > 0) selezionaCantiere(DB.cantieri[0]);
+
+  fillSelectCantieri();
+  renderAll();
+}
+
+function fillSelectCantieri() {
+  var sel = document.getElementById('sp-cant');
+  sel.innerHTML = '<option value="">— Seleziona cantiere —</option>';
+  DB.cantieri.forEach(function(c){
+    var o = document.createElement('option');
+    o.value = c.id; o.textContent = c.id+' — '+c.nome.substring(0,28);
+    sel.appendChild(o);
+  });
+  if (APP.cantiere) sel.value = APP.cantiere.id;
+}
+
+function renderAll() {
+  renderHome();
+  renderPresenze();
+  renderSpeseOggi();
+}
+
+// ═══════════════════════════════════════════════════════════
+// NAVIGAZIONE
+// ═══════════════════════════════════════════════════════════
+function goView(id) {
+  document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
+  document.querySelectorAll('.bnav-item').forEach(function(b){ b.classList.remove('active'); });
+  document.getElementById('view-'+id).classList.add('active');
+  document.getElementById('nav-'+id).classList.add('active');
+  if (id==='presenze') renderPresenze();
+  if (id==='spese') { renderSpeseOggi(); if(APP.cantiere) document.getElementById('sp-cant').value=APP.cantiere.id; }
+}
+
+// ═══════════════════════════════════════════════════════════
+// CANTIERE
+// ═══════════════════════════════════════════════════════════
+function selezionaCantiere(cant) {
+  APP.cantiere = cant;
+  // Home
+  document.getElementById('home-cant-nome').textContent = cant.nome;
+  document.getElementById('home-cant-sub').textContent = cant.cli+' · '+cant.stato;
+  // Presenze
+  document.getElementById('pres-cant-nome').textContent = cant.nome;
+  document.getElementById('pres-cant-sub').textContent = cant.cli+' · Avanz. '+cant.avanz+'%';
+  // KPI avanzamento
+  document.getElementById('kpi-avanz').textContent = cant.avanz+'%';
+  renderPresenze();
+  fillSelectCantieri();
+}
+
+function openModalCantiere() {
+  var list = document.getElementById('modal-cant-list');
+  list.innerHTML = '';
+  DB.cantieri.forEach(function(c){
+    var div = document.createElement('div');
+    div.className = 'cant-item'+(APP.cantiere&&APP.cantiere.id===c.id?' selected':'');
+    div.innerHTML =
+      '<div class="cant-item-icon">🏗️</div>'+
+      '<div class="cant-item-info">'+
+        '<div class="cant-item-nome">'+c.nome+'</div>'+
+        '<div class="cant-item-sub">'+c.cli+' · <span class="badge b-blue">'+c.stato+'</span></div>'+
+      '</div>'+
+      '<div style="color:var(--accent);font-weight:700;font-size:13px;">'+c.avanz+'%</div>';
+    div.onclick = function(){
+      selezionaCantiere(c);
+      closeModal('modal-cantiere');
+      toast('🏗️ Cantiere: '+c.nome.substring(0,24));
+    };
+    list.appendChild(div);
+  });
+  document.getElementById('modal-cantiere').classList.add('open');
+}
+
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+function closeModalIfBg(e,id){ if(e.target.id===id) closeModal(id); }
+
+// ═══════════════════════════════════════════════════════════
+// HOME
+// ═══════════════════════════════════════════════════════════
+function renderHome() {
+  var td = today();
+  var cant = APP.cantiere;
+
+  // Operai oggi sul cantiere corrente
+  var operaiOggi = 0;
+  if (cant) {
+    var giorn = cant.giorn || [];
+    operaiOggi = giorn.filter(function(g){ return g.data===td; }).length;
+  }
+  document.getElementById('kpi-operai').textContent = operaiOggi;
+
+  // Spese di oggi
+  var speseOggi = DB.spese.filter(function(s){ return s.data===td; })
+                          .reduce(function(sum,s){ return sum+(s.imp||0); },0);
+  document.getElementById('kpi-spese').textContent = '€'+fmt(speseOggi);
+
+  // Ultime spese
+  var list = document.getElementById('home-spese-list');
+  var recenti = DB.spese.slice().sort(function(a,b){ return b.data.localeCompare(a.data); }).slice(0,4);
+  if (!recenti.length) {
+    list.innerHTML = '<div class="empty" style="padding:16px 0;"><div class="empty-icon">📋</div>Nessuna spesa</div>';
+    return;
+  }
+  var icons = {Materiali:'🧱',Carburante:'⛽',Noleggi:'🏗️',Manodopera:'👷',Assicurazioni:'📋',Altro:'💼'};
+  list.innerHTML = '';
+  recenti.forEach(function(s){
+    var div = document.createElement('div');
+    div.className = 'spesa-item';
+    div.innerHTML =
+      '<div class="spesa-icon">'+(icons[s.cat]||'💼')+'</div>'+
+      '<div class="spesa-info">'+
+        '<div class="spesa-desc">'+s.desc+'</div>'+
+        '<div class="spesa-sub">'+s.data+' · '+s.cat+(s.cant?' · '+s.cant:'')+'</div>'+
+      '</div>'+
+      '<div class="spesa-imp">€'+fmt(s.imp)+'</div>';
+    list.appendChild(div);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// PRESENZE
+// ═══════════════════════════════════════════════════════════
+function renderPresenze() {
+  var container = document.getElementById('pres-operai-list');
+  var cant = APP.cantiere;
+  var dataVal = document.getElementById('pres-data').value || today();
+
+  if (!cant) {
+    container.innerHTML = '<div class="empty"><div class="empty-icon">🏗️</div>Seleziona un cantiere</div>';
+    return;
+  }
+
+  // Operai del cantiere corrente + operai senza cantiere assegnato
+  var operai = DB.personale.filter(function(p){
+    return p.cant===cant.id || !p.cant;
+  });
+
+  if (!operai.length) {
+    container.innerHTML = '<div class="empty"><div class="empty-icon">👷</div>Nessun operaio assegnato a questo cantiere</div>';
+    return;
+  }
+
+  // Verifica chi è già registrato per questa data
+  var giornOggi = (cant.giorn||[]).filter(function(g){ return g.data===dataVal; });
+  var presentiOggi = {};
+  giornOggi.forEach(function(g){ presentiOggi[g.op]=g; });
+
+  container.innerHTML = '';
+  operai.forEach(function(p, i){
+    var presente = !!presentiOggi[p.nome];
+    var gOggi = presentiOggi[p.nome];
+    var div = document.createElement('div');
+    div.className = 'op-row'+(presente?' presente':'');
+    div.id = 'op-row-'+i;
+
+    var cantOpts = DB.cantieri.map(function(c){
+      return '<option value="'+c.id+'"'+(c.id===cant.id?' selected':'')+'>'+c.id+' — '+c.nome.substring(0,22)+'</option>';
+    }).join('');
+    var ggOpts = ['1','0.5','0.25'].map(function(v){
+      return '<option value="'+v+'"'+(gOggi&&String(gOggi.gg)===v?' selected':'')+'>'+
+        (v==='1'?'Giornata intera':v==='0.5'?'Mezza giornata':'Quarto di giornata')+'</option>';
+    }).join('');
+
+    div.innerHTML =
+      '<div class="op-row-head">'+
+        '<div class="op-check'+(presente?' on':'')+'" id="opchk-'+i+'" onclick="toggleOpPresente('+i+',\''+p.nome+'\')">'+
+          (presente?'✓':'')+'</div>'+
+        '<div class="op-info">'+
+          '<div class="op-nome">'+p.nome+'</div>'+
+          '<div class="op-ruolo">'+p.ruolo+(presente?'&nbsp;<span class="badge b-green">Presente</span>':'')+'</div>'+
+        '</div>'+
+        '<div class="op-expand" id="opexp-'+i+'" onclick="toggleOpDetails('+i+')">⌄</div>'+
+      '</div>'+
+      '<div class="op-details hidden" id="op-det-'+i+'">'+
+        '<div class="op-field">'+
+          '<label>Giornate</label>'+
+          '<select id="op-gg-'+i+'">'+ggOpts+'</select>'+
+        '</div>'+
+        '<div class="op-field">'+
+          '<label>Costo / gg €</label>'+
+          '<input type="number" id="op-costo-'+i+'" value="'+(p.costo||200)+'" inputmode="decimal">'+
+        '</div>'+
+        '<div class="op-field" style="grid-column:1/-1;">'+
+          '<label>Cantiere</label>'+
+          '<select id="op-cant-'+i+'">'+cantOpts+'</select>'+
+        '</div>'+
+      '</div>';
+    container.appendChild(div);
+  });
+}
+
+function toggleOpDetails(i) {
+  var det = document.getElementById('op-det-'+i);
+  var exp = document.getElementById('opexp-'+i);
+  det.classList.toggle('hidden');
+  exp.classList.toggle('open');
+}
+
+function toggleOpPresente(i, nome) {
+  var chk = document.getElementById('opchk-'+i);
+  var row = document.getElementById('op-row-'+i);
+  var isOn = chk.classList.contains('on');
+  if (isOn) {
+    chk.classList.remove('on'); chk.textContent='';
+    row.classList.remove('presente');
+  } else {
+    chk.classList.add('on'); chk.textContent='✓';
+    row.classList.add('presente');
+    // Apri dettagli automaticamente
+    var det = document.getElementById('op-det-'+i);
+    var exp = document.getElementById('opexp-'+i);
+    if (det.classList.contains('hidden')){ det.classList.remove('hidden'); exp.classList.add('open'); }
+  }
+}
+
+function salvaPresenze() {
+  var cant = APP.cantiere;
+  var dataVal = document.getElementById('pres-data').value || today();
+  if (!cant) { toast('⚠️ Seleziona un cantiere','var(--red)'); return; }
+  if (!cant.giorn) cant.giorn = [];
+
+  var operai = DB.personale.filter(function(p){ return p.cant===cant.id||!p.cant; });
+  var aggiunte = 0;
+
+  operai.forEach(function(p, i){
+    var chk = document.getElementById('opchk-'+i);
+    if (!chk || !chk.classList.contains('on')) return;
+
+    var gg    = Number(document.getElementById('op-gg-'+i).value)||1;
+    var costo = Number(document.getElementById('op-costo-'+i).value)||(p.costo||200);
+    var cantId = (document.getElementById('op-cant-'+i)||{}).value || cant.id;
+
+    // Aggiorna cantiere target se diverso
+    var targetCant = DB.cantieri.find(function(c){ return c.id===cantId; }) || cant;
+    if (!targetCant.giorn) targetCant.giorn = [];
+
+    // Rimuovi eventuale duplicato e riscrivi
+    targetCant.giorn = targetCant.giorn.filter(function(g){ return !(g.data===dataVal&&g.op===p.nome); });
+    targetCant.giorn.push({ data:dataVal, op:p.nome, ruolo:p.ruolo, gg:gg, costo:costo });
+    p.stato = 'Presente';
+    aggiunte++;
+  });
+
+  renderAll();
+  if (aggiunte) {
+    toast('✅ '+aggiunte+' presence salvate', 'var(--green)');
+    // Autosync se Drive attivo
+    if (!APP.isDemo && APP.gdToken) setTimeout(gdSync, 500);
+  } else {
+    toast('⚠️ Nessun operaio selezionato');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// SPESE
+// ═══════════════════════════════════════════════════════════
+function salvaSpesa() {
+  var desc = document.getElementById('sp-desc').value.trim();
+  var imp  = parseFloat(document.getElementById('sp-imp').value);
+  var data = document.getElementById('sp-data').value || today();
+  if (!desc) { toast('⚠️ Inserisci una descrizione','var(--red)'); return; }
+  if (!imp || imp<=0) { toast('⚠️ Inserisci un importo valido','var(--red)'); return; }
+
+  DB.spese.push({
+    data: data,
+    cat:  document.getElementById('sp-cat').value,
+    desc: desc,
+    cant: document.getElementById('sp-cant').value,
+    imp:  imp,
+    pag:  document.getElementById('sp-pag').value,
+    note: document.getElementById('sp-note').value,
+  });
+
+  // Reset form
+  document.getElementById('sp-desc').value = '';
+  document.getElementById('sp-imp').value  = '';
+  document.getElementById('sp-note').value = '';
+
+  renderSpeseOggi();
+  renderHome();
+  toast('✅ Spesa aggiunta: €'+fmt(imp),'var(--green)');
+
+  // Autosync
+  if (!APP.isDemo && APP.gdToken) setTimeout(gdSync, 500);
+}
+
+function renderSpeseOggi() {
+  var td = today();
+  var list = document.getElementById('spese-oggi-list');
+  var oggi = DB.spese.filter(function(s){ return s.data===td; })
+                     .slice().reverse();
+  if (!oggi.length) {
+    list.innerHTML = '<div class="empty" style="padding:20px 0;"><div class="empty-icon">📋</div>Nessuna spesa oggi</div>';
+    return;
+  }
+  var icons = {Materiali:'🧱',Carburante:'⛽',Noleggi:'🏗️',Manodopera:'👷',Assicurazioni:'📋',Altro:'💼'};
+  list.innerHTML = '';
+  oggi.forEach(function(s){
+    var div = document.createElement('div');
+    div.className = 'spesa-item';
+    div.innerHTML =
+      '<div class="spesa-icon">'+(icons[s.cat]||'💼')+'</div>'+
+      '<div class="spesa-info">'+
+        '<div class="spesa-desc">'+s.desc+'</div>'+
+        '<div class="spesa-sub">'+s.cat+(s.cant?' · '+s.cant:'')+(s.pag?' · '+s.pag:'')+'</div>'+
+      '</div>'+
+      '<div class="spesa-imp">€'+fmt(s.imp)+'</div>';
+    list.appendChild(div);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+(function init(){
+  // Controlla se c'è già un clientId salvato
+  var savedId = localStorage.getItem('bm_clientId');
+  var savedFn = localStorage.getItem('bm_fileName');
+  if (savedId) document.getElementById('setup-client-id').value = savedId;
+  if (savedFn) document.getElementById('setup-filename').value = savedFn;
+})();
+</script>
+
+</body>
+</html>
